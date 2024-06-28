@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:wear/wear.dart';
 
@@ -7,18 +6,20 @@ void main() {
   runApp(const MyApp());
 }
 
-//////  Cronometro
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'SmartWatch Timer',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.compact,
+        brightness: Brightness.dark,
+        primaryColor: Colors.black,
+        hintColor: Colors.blueAccent,
+        textTheme: const TextTheme(
+          bodySmall: TextStyle(color: Colors.white),
+        ),
       ),
       home: const WatchScreen(),
     );
@@ -34,7 +35,7 @@ class WatchScreen extends StatelessWidget {
       builder: (context, shape, child) {
         return AmbientMode(
           builder: (context, mode, child) {
-            return TimerScreen(mode);
+            return TimerScreen(mode: mode);
           },
         );
       },
@@ -43,11 +44,9 @@ class WatchScreen extends StatelessWidget {
 }
 
 class TimerScreen extends StatefulWidget {
-  // const TimerScreen({super.key});
-  
   final WearMode mode;
 
-  const TimerScreen(this.mode, {super.key});
+  const TimerScreen({required this.mode, super.key});
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
@@ -55,105 +54,149 @@ class TimerScreen extends StatefulWidget {
 
 class _TimerScreenState extends State<TimerScreen> {
   late Timer _timer;
-  late int _count;
-  late String _strCount;
-  late String _status;
+  int _count = 0;
+  String _strCount = "00:00";
+  String _status = "Start";
 
   @override
   void initState() {
-    _count = 0;
-    _strCount = "00:00:00";
-    _status = "Start";
     super.initState();
   }
 
   @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    bool isAmbient = widget.mode == WearMode.ambient;
     return Scaffold(
-      backgroundColor: widget.mode == WearMode.active ? Colors.white : Colors.black,
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Center(
-              child: FlutterLogo(),
-            ),
-            const SizedBox(height: 4.0),
-            Center(
-              child: Text(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey[850],
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.timer,
+                    size: 30,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
                 _strCount,
                 style: TextStyle(
-                    color: widget.mode == WearMode.active
-                        ? Colors.black
-                        : Colors.white),
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: isAmbient ? Colors.grey : Colors.white,
+                ),
               ),
-            ),
-            _buildWidgetButton(),
-          ],
+              const SizedBox(height: 16),
+              if (!isAmbient)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    ElevatedButton.icon(
+                      onPressed: _handleStartStop,
+                      icon: Icon(
+                        _status == "Start"
+                            ? Icons.play_arrow
+                            : _status == "Stop"
+                                ? Icons.pause
+                                : Icons.play_arrow,
+                        size: 16,
+                      ),
+                      label: Text(
+                        _status == "Start"
+                            ? "Start"
+                            : _status == "Stop"
+                                ? "Pause"
+                                : "Continue",
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: _handleReset,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text(
+                        "Reset",
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildWidgetButton() {
-    if (widget.mode == WearMode.active) {
-      return Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          ElevatedButton(
-            // color: Colors.blue,
-            // textColor: Colors.white,
-            onPressed: () {
-              if (_status == "Start") {
-                _startTimer();
-              } else if (_status == "Stop") {
-                _timer.cancel();
-                setState(() {
-                  _status = "Continue";
-                });
-              } else if (_status == "Continue") {
-                _startTimer();
-              }
-            },
-            child: Text(_status),
-          ),
-          ElevatedButton(
-            // color: Colors.blue,
-            // textColor: Colors.white,
-            onPressed: () {
-              // ignore: unnecessary_null_comparison
-              if (_timer != null) {
-                _timer.cancel();
-                setState(() {
-                  _count = 0;
-                  _strCount = "00:00:00";
-                  _status = "Start";
-                });
-              }
-            },
-            child: const Text("Reset"),
-          ),
-        ],
-      );
-    } else {
-      return Container();
+  void _handleStartStop() {
+    if (_status == "Start") {
+      _startTimer();
+      setState(() {
+        _status = "Stop";
+      });
+    } else if (_status == "Stop") {
+      _timer.cancel();
+      setState(() {
+        _status = "Continue";
+      });
+    } else if (_status == "Continue") {
+      _startTimer();
+      setState(() {
+        _status = "Stop";
+      });
     }
   }
 
+  void _handleReset() {
+    _timer.cancel();
+    setState(() {
+      _count = 0;
+      _strCount = "00:00";
+      _status = "Start";
+    });
+  }
+
   void _startTimer() {
-    _status = "Stop";
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _count += 1;
-        int hour = _count ~/ 3600;
-        int minute = (_count % 3600) ~/ 60;
-        int second = (_count % 3600) % 60;
-        _strCount = hour < 10 ? "0$hour" : "$hour";
-        _strCount += ":";
-        _strCount += minute < 10 ? "0$minute" : "$minute";
-        _strCount += ":";
-        _strCount += second < 10 ? "0$second" : "$second";
+        int minute = _count ~/ 60;
+        int second = _count % 60;
+        _strCount =
+            '${minute.toString().padLeft(2, '0')}:${second.toString().padLeft(2, '0')}';
       });
     });
   }
